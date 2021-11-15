@@ -7,7 +7,7 @@
 #define PI 3.14159265
 using namespace std;
 
-const float G = 1;
+const float G = 1; // gravitational constant
 const int FPS = 60;
 const float PHYS_SCALE = 0.4; // physics time scale
 const int WIDTH = 800; // screen width
@@ -17,6 +17,7 @@ const int TRAIL_WIDTH = 5; // maximum trail width
 
 sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
 float zoom = 2;
+float zoomSensitivity = 0.3; // amount zoomed per scroll, 1 = 2x zoom
 
 vector<Planet> planets;
 sf::Clock frameClock;
@@ -113,7 +114,11 @@ void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
 }
 
 void handle_mouse_scroll(sf::Event e, sf::RenderWindow* win) {
-	zoom *= pow(2, -e.mouseWheelScroll.delta);
+	zoom *= pow(2, -e.mouseWheelScroll.delta*zoomSensitivity);
+	sf::Vector2f pos(e.mouseWheelScroll.x, e.mouseWheelScroll.y);
+	cameraPos -= pos;
+	cameraPos *= powf(2, e.mouseWheelScroll.delta*zoomSensitivity);
+	cameraPos += pos;
 }
 
 int main() {
