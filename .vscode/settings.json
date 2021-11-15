@@ -4,6 +4,7 @@
         "xiosbase": "cpp",
         "queue": "cpp",
         "vector": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "cmath": "cpp"
     }
 }
