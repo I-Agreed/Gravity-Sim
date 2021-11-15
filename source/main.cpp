@@ -14,6 +14,7 @@ const int WIDTH = 800; // screen width
 const int HEIGHT = 600; // screen height
 const int TRAIL_LENGTH = 90; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
+const float TRAIL_ALPHA = 0.5; // base trail alpha value
 
 sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
 float zoom = 2;
@@ -40,6 +41,10 @@ sf::Vector2f normalize(sf::Vector2f p) { // returns direction vector from p1 to 
 sf::Vector2f direction(sf::Vector2f p1, sf::Vector2f p2) { // returns direction vector from p1 to p2
 	sf::Vector2f p3 = p2 - p1;
 	return p3 / length(p3);
+}
+
+sf::Vector2f to_screen(sf::Vector2f p) { // convert position to screen coord
+	return p/zoom + cameraPos;
 }
 
 void add_trail(Planet* p) {
@@ -76,12 +81,18 @@ void update() {
 
 void draw_trail(Planet p, sf::RenderWindow* win) {
 	if (p.createTrail) {
-		sf::VertexArray line(sf::TriangleStrip, p.trail.size());
+		sf::VertexArray line(sf::TriangleStrip, p.trail.size() + 2); // add two points to connect trail to planet
 		for (int i = 0; i < p.trail.size(); i++) {
-			line[i].position = p.trail[i]/zoom + cameraPos;
-			float colourScale = (i/(p.trail.size()-1.f));
+			line[i].position = to_screen(p.trail[i]);
+			float colourScale = (i/(p.trail.size()-1.f)) * TRAIL_ALPHA;
 			line[i].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a *  colourScale);
 		}
+		float trailSize = (-1/(length(p.vel)/4+1) + 1) * TRAIL_WIDTH; // connect trail to planet with those 2 extra points
+		sf::Vector2f normal = normalize(sf::Vector2f(-p.vel.y, p.vel.x));
+		line[p.trail.size()].position = to_screen(p.pos + normal*trailSize);
+		line[p.trail.size()].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a * TRAIL_ALPHA);
+		line[p.trail.size() + 1].position = to_screen(p.pos - normal*trailSize);
+		line[p.trail.size() + 1].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a * TRAIL_ALPHA);
 		win->draw(line);
 	}
 }
@@ -90,7 +101,7 @@ void draw_planet(Planet p, sf::RenderWindow* win) {
 	sf::CircleShape circle;
 	circle.setRadius(p.size/zoom);
 	circle.setFillColor(p.colour);
-	circle.setPosition((p.pos - sf::Vector2f(p.size, p.size))/zoom + cameraPos);
+	circle.setPosition(to_screen(p.pos - sf::Vector2f(p.size, p.size)));
 
 	win->draw(circle);
 }
@@ -125,9 +136,9 @@ int main() {
 	sf::RenderWindow window(sf::VideoMode(800, 600), "Gravity Sim");
 	
 	planets.push_back(Planet(0, 0, 0, 0, 10000, true));
-	planets.push_back(Planet(100, 0, 0, -8, 100, false, true, sf::Color(255, 0, 0)));
-	planets.push_back(Planet(-50, 50*sqrt(3), 4*sqrt(3), 4, 100, false, true, sf::Color(0, 255, 0)));
-	planets.push_back(Planet(-50, -50*sqrt(3), -4*sqrt(3), 4, 100, false, true, sf::Color(0, 0, 255)));
+	planets.push_back(Planet(150, 0, 0, -6, 100, false, true, sf::Color(255, 0, 0)));
+	planets.push_back(Planet(-75, 75*sqrt(3), 3*sqrt(3), 3, 100, false, true, sf::Color(0, 255, 0)));
+	planets.push_back(Planet(-75, -75*sqrt(3), -3*sqrt(3), 3, 100, false, true, sf::Color(0, 0, 255)));
 
 	while (window.isOpen()) {
 		frameClock.getElapsedTime();
