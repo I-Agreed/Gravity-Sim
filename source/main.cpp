@@ -16,7 +16,7 @@ const int TRAIL_LENGTH = 90; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
 
 sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
-float zoom = 1;
+float zoom = 2;
 
 vector<Planet> planets;
 sf::Clock frameClock;
@@ -42,7 +42,7 @@ sf::Vector2f direction(sf::Vector2f p1, sf::Vector2f p2) { // returns direction 
 }
 
 void add_trail(Planet* p) {
-	float trailSize = (-1/(length(p->vel)/2+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
+	float trailSize = (-1/(length(p->vel)/4+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
 	sf::Vector2f normal = normalize(sf::Vector2f(-p->vel.y, p->vel.x));
 	p->trail.push_back(p->pos + normal*trailSize);
 	p->trail.push_back(p->pos - normal*trailSize);
@@ -77,7 +77,7 @@ void draw_trail(Planet p, sf::RenderWindow* win) {
 	if (p.createTrail) {
 		sf::VertexArray line(sf::TriangleStrip, p.trail.size());
 		for (int i = 0; i < p.trail.size(); i++) {
-			line[i].position = p.trail[i] + cameraPos;
+			line[i].position = p.trail[i]/zoom + cameraPos;
 			float colourScale = (i/(p.trail.size()-1.f));
 			line[i].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a *  colourScale);
 		}
@@ -87,9 +87,9 @@ void draw_trail(Planet p, sf::RenderWindow* win) {
 
 void draw_planet(Planet p, sf::RenderWindow* win) {
 	sf::CircleShape circle;
-	circle.setRadius(p.size);
+	circle.setRadius(p.size/zoom);
 	circle.setFillColor(p.colour);
-	circle.setPosition(p.pos - sf::Vector2f(p.size, p.size) + cameraPos);
+	circle.setPosition((p.pos - sf::Vector2f(p.size, p.size))/zoom + cameraPos);
 
 	win->draw(circle);
 }
@@ -112,6 +112,10 @@ void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
 	lastMousePos = pos;
 }
 
+void handle_mouse_scroll(sf::Event e, sf::RenderWindow* win) {
+	zoom *= pow(2, -e.mouseWheelScroll.delta);
+}
+
 int main() {
 	sf::RenderWindow window(sf::VideoMode(800, 600), "Gravity Sim");
 	
@@ -127,6 +131,7 @@ int main() {
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) window.close();
 			if (event.type == sf::Event::MouseMoved) handle_mouse_move(event, &window);
+			if (event.type == sf::Event::MouseWheelScrolled) handle_mouse_scroll(event, &window);
 		}
 		window.clear();
 		draw_all_planets(&window);
