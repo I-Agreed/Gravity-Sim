@@ -1,7 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <algorithm>
-#include "Planet.h"
+#include <math.h>
+#include "Planet.hpp"
 using namespace std;
 
 const float G = 1;
