@@ -2,6 +2,7 @@
 #include <vector>
 #include <math.h>
 #include "Planet.hpp"
+#include <iostream>
 
 #define PI 3.14159265
 using namespace std;
@@ -15,6 +16,7 @@ const int TRAIL_LENGTH = 90; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
 
 sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
+float zoom = 1;
 
 vector<Planet> planets;
 sf::Clock frameClock;
@@ -39,14 +41,14 @@ sf::Vector2f direction(sf::Vector2f p1, sf::Vector2f p2) { // returns direction 
 	return p3 / length(p3);
 }
 
-void add_trail(Planet p) {
-	float trailSize = (-1/(length(p.vel)/2+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
-	sf::Vector2f normal = normalize(sf::Vector2f(-p.vel.y, p.vel.x));
-	p.trail.push_back(p.pos + normal*trailSize);
-	p.trail.push_back(p.pos - normal*trailSize);
-	if (p.trail.size() > TRAIL_LENGTH * 2) {
-		p.trail.pop_front();
-		p.trail.pop_front(); // each trail 'point' is actually two points
+void add_trail(Planet* p) {
+	float trailSize = (-1/(length(p->vel)/2+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
+	sf::Vector2f normal = normalize(sf::Vector2f(-p->vel.y, p->vel.x));
+	p->trail.push_back(p->pos + normal*trailSize);
+	p->trail.push_back(p->pos - normal*trailSize);
+	if (p->trail.size() > TRAIL_LENGTH * 2) {
+		p->trail.pop_front();
+		p->trail.pop_front(); // each trail 'point' is actually two points
 	}
 }
 
@@ -65,7 +67,7 @@ void update() {
 
 	for (int i = 0; i < planets.size(); i++) {
 		if (planets[i].createTrail) {
-			add_trail(planets[i]);
+			add_trail(&planets[i]);
 		}
 		planets[i].pos += planets[i].vel * PHYS_SCALE;
 	} 

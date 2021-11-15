@@ -5,6 +5,7 @@
         "queue": "cpp",
         "vector": "cpp",
         "deque": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "xstring": "cpp"
     }
 }
