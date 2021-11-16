@@ -98,7 +98,7 @@ void update() {
 		}
 
 		for (int i = 0; i < planets.size(); i++) {
-			if (planets[i].createTrail) {
+			if (planets[i].createTrail && !planets[i].fixed) {
 				add_trail(&planets[i]);
 			}
 			planets[i].pos += planets[i].vel * PHYS_SCALE;
@@ -107,7 +107,7 @@ void update() {
 }
 
 void draw_trail(Planet p, sf::RenderWindow* win) {
-	if (p.createTrail) {
+	if (p.createTrail && !p.fixed) {
 		sf::VertexArray line(sf::TriangleStrip, p.trail.size() + 2); // add two points to connect trail to planet
 		for (int i = 0; i < p.trail.size(); i++) {
 			line[i].position = to_screen(p.trail[i]);
