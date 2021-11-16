@@ -15,14 +15,20 @@ const int HEIGHT = 600; // screen height
 const int TRAIL_LENGTH = 90; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
 const float TRAIL_ALPHA = 0.5; // base trail alpha value
+const float PLANET_CREATE_VEL_SCALE = 0.05;
+const float ARROW_HEAD_SIZE = 20;
+const int ARROW_LINE_WIDTH = 4;
 
 sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
-float zoom = 2;
+float zoom = 1;
 float zoomSensitivity = 0.3; // amount zoomed per scroll, 1 = 2x zoom
+sf::Color arrowColor = sf::Color::White;
 
 vector<Planet> planets;
 sf::Clock frameClock;
-bool lastMouseDown = false;
+bool creatingPlanet = false;
+sf::Vector2f planetCreatePos;
+bool mouseMoved = false;
 sf::Vector2i lastMousePos;
 
 float length(sf::Vector2f p) {
@@ -45,6 +51,10 @@ sf::Vector2f direction(sf::Vector2f p1, sf::Vector2f p2) { // returns direction 
 
 sf::Vector2f to_screen(sf::Vector2f p) { // convert position to screen coord
 	return p/zoom + cameraPos;
+}
+
+sf::Vector2f to_pos(sf::Vector2f p) { // convert screen coord to position
+	return (p - cameraPos) * zoom;
 }
 
 void add_trail(Planet* p) {
@@ -106,30 +116,88 @@ void draw_planet(Planet p, sf::RenderWindow* win) {
 	win->draw(circle);
 }
 
-void draw_all_planets(sf::RenderWindow* win) {
+void draw_arrow(sf::Vector2f start, sf::Vector2f end, sf::RenderWindow* win) {
+	float angle = atan2f(end.y - start.y, end.x - start.x) * 180 / PI;
+	float dist = distance(start, end);
+
+	sf::RectangleShape line(sf::Vector2f(dist - ARROW_HEAD_SIZE, ARROW_LINE_WIDTH)); // Arrow Line
+	line.setOrigin(sf::Vector2f(0, ARROW_LINE_WIDTH/2));
+	line.setPosition(start);
+	line.setRotation(angle);
+	line.setFillColor(arrowColor);
+
+	sf::ConvexShape head(3); // Arrowhead
+	head.setPoint(0, sf::Vector2f(ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
+	head.setPoint(1, sf::Vector2f(0, ARROW_HEAD_SIZE));
+	head.setPoint(2, sf::Vector2f(0, 0));
+	head.setOrigin(sf::Vector2f(-dist + ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
+	head.setPosition(start);
+	head.setRotation(angle);
+	head.setFillColor(arrowColor);
+
+	win->draw(line);
+	win->draw(head);
+}
+
+void draw_all(sf::RenderWindow* win) {
 	for (Planet p : planets) {
 		draw_trail(p, win);
 	}
 	for (Planet p : planets) {
 		draw_planet(p, win);
 	}
+	if (creatingPlanet) {
+		sf::Vector2i mousePosi = sf::Mouse::getPosition(*win);
+		sf::Vector2f mousePos(mousePosi.x, mousePosi.y);
+		draw_arrow(planetCreatePos, mousePos, win);
+	}
 }
 
 void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
-	sf::Vector2i pos = sf::Mouse::getPosition(*win);
-	if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-			sf::Vector2i change = pos - lastMousePos;
-			cameraPos += sf::Vector2f(change.x, change.y);
+	if (!creatingPlanet) {
+		sf::Vector2i pos = sf::Mouse::getPosition(*win);
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+				sf::Vector2i change = pos - lastMousePos;
+				cameraPos += sf::Vector2f(change.x, change.y);
+		}
+		lastMousePos = pos;
+		mouseMoved = true;
 	}
-	lastMousePos = pos;
 }
 
 void handle_mouse_scroll(sf::Event e, sf::RenderWindow* win) {
-	zoom *= pow(2, -e.mouseWheelScroll.delta*zoomSensitivity);
-	sf::Vector2f pos(e.mouseWheelScroll.x, e.mouseWheelScroll.y);
-	cameraPos -= pos;
-	cameraPos *= powf(2, e.mouseWheelScroll.delta*zoomSensitivity);
-	cameraPos += pos;
+	if (!creatingPlanet) {
+		zoom *= pow(2, -e.mouseWheelScroll.delta*zoomSensitivity);
+		sf::Vector2f pos(e.mouseWheelScroll.x, e.mouseWheelScroll.y);
+		cameraPos -= pos;
+		cameraPos *= powf(2, e.mouseWheelScroll.delta*zoomSensitivity);
+		cameraPos += pos;
+	}
+}
+
+void handle_mouse_press(sf::Event e) {
+	if (e.mouseButton.button == sf::Mouse::Button::Left) {
+		mouseMoved = false;
+	} else if (e.mouseButton.button == sf::Mouse::Button::Right) {
+		creatingPlanet = false;
+	}
+}
+
+void handle_mouse_release(sf::Event e) {
+	if (e.mouseButton.button == sf::Mouse::Button::Left) {
+		sf::Vector2f pos = sf::Vector2f(e.mouseButton.x, e.mouseButton.y);
+		if (creatingPlanet) { // finish creating planet
+			sf::Vector2f vel = PLANET_CREATE_VEL_SCALE * (pos - planetCreatePos) * zoom;
+			sf::Vector2f createPos = to_pos(planetCreatePos);
+			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, sf::Color(255, 0, 255)));
+			creatingPlanet = false;
+		} else { // begin creating planet
+			if (!mouseMoved) {
+				creatingPlanet = true;
+				planetCreatePos = pos;
+			}
+		}
+	}
 }
 
 int main() {
@@ -148,9 +216,11 @@ int main() {
 			if (event.type == sf::Event::Closed) window.close();
 			if (event.type == sf::Event::MouseMoved) handle_mouse_move(event, &window);
 			if (event.type == sf::Event::MouseWheelScrolled) handle_mouse_scroll(event, &window);
+			if (event.type == sf::Event::MouseButtonPressed) handle_mouse_press(event);
+			if (event.type == sf::Event::MouseButtonReleased) handle_mouse_release(event);
 		}
 		window.clear();
-		draw_all_planets(&window);
+		draw_all(&window);
 		window.display();
 		update();
 		frameClock.restart();

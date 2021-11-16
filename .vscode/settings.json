@@ -6,6 +6,10 @@
         "vector": "cpp",
         "deque": "cpp",
         "cmath": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "iterator": "cpp",
+        "map": "cpp",
+        "memory": "cpp",
+        "xutility": "cpp"
     }
 }
