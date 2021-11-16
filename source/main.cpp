@@ -32,6 +32,10 @@ sf::Vector2f planetCreatePos;
 bool mouseMoved = false;
 sf::Vector2i lastMousePos;
 
+vector<Planet> savedPlanets;
+sf::Vector2f savedCameraPos;
+float savedZoom;
+
 float length(sf::Vector2f p) {
 	return sqrtf(pow(p.x, 2) + pow(p.y, 2));
 }
@@ -158,6 +162,25 @@ void draw_all(sf::RenderWindow* win) {
 	}
 }
 
+void save_state() {
+	savedPlanets.clear();
+	for (Planet p:planets) {
+		savedPlanets.push_back(p.copy());
+	}
+	savedZoom = zoom;
+	savedCameraPos = cameraPos;
+}
+
+void load_state() {
+	planets.clear();
+	for (Planet p:savedPlanets) {
+		planets.push_back(p.copy());
+	}
+	zoom = savedZoom;
+	cameraPos = savedCameraPos;
+	creatingPlanet = false;
+}
+
 void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
 	if (!creatingPlanet) {
 		sf::Vector2i pos = sf::Mouse::getPosition(*win);
@@ -205,6 +228,13 @@ void handle_mouse_release(sf::Event e) {
 	}
 }
 
+void handle_key_press(sf::Event e) {
+	switch (e.key.code) {
+		case (sf::Keyboard::S): save_state();
+		case (sf::Keyboard::L): load_state();
+	}
+}
+
 int main() {
 	sf::RenderWindow window(sf::VideoMode(800, 600), "Gravity Sim");
 	
@@ -213,6 +243,7 @@ int main() {
 	planets.push_back(Planet(-75, 75*sqrt(3), 3*sqrt(3), 3, 100, false, true, sf::Color(0, 255, 0)));
 	planets.push_back(Planet(-75, -75*sqrt(3), -3*sqrt(3), 3, 100, false, true, sf::Color(0, 0, 255)));
 
+	save_state(); // Save default state
 	while (window.isOpen()) {
 		frameClock.getElapsedTime();
 		sf::sleep(sf::seconds(1.0 / FPS) - frameClock.getElapsedTime());
@@ -223,6 +254,7 @@ int main() {
 			if (event.type == sf::Event::MouseWheelScrolled) handle_mouse_scroll(event, &window);
 			if (event.type == sf::Event::MouseButtonPressed) handle_mouse_press(event);
 			if (event.type == sf::Event::MouseButtonReleased) handle_mouse_release(event);
+			if (event.type == sf::Event::KeyPressed) handle_key_press(event);
 		}
 		window.clear();
 		draw_all(&window);

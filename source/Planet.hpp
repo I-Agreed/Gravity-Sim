@@ -24,5 +24,13 @@ struct Planet {
 		fixed = f;
 		createTrail = t;
 	}
+
+	Planet copy() {
+		Planet newPlanet(pos.x, pos.y, vel.x, vel.y, mass, fixed, createTrail, colour);
+		for (sf::Vector2f pos: trail) {
+			newPlanet.trail.push_back(sf::Vector2f(pos.x, pos.y));
+		}
+		return newPlanet;
+	}
 };
 
