@@ -62,8 +62,13 @@ sf::Vector2f to_pos(sf::Vector2f p) { // convert screen coord to position
 	return (p - cameraPos) * zoom;
 }
 
-sf::Color random_color() {
-	return sf::Color(rand() % 255, rand() % 255, rand() % 255);
+sf::Color random_colour() {
+	int colour = rand() % 3; // primary colour index
+	int second = (rand() % 2) * 2 + 2; // Pick second colour index
+	int rgb[3] = {0, 0, 0};
+	rgb[colour] = 255; // ensures full brightness
+	rgb[(colour + second) % 3] = rand() % 255;
+	return sf::Color(rgb[0], rgb[1], rgb[2]);
 }
 
 void add_trail(Planet* p) {
@@ -217,7 +222,7 @@ void handle_mouse_release(sf::Event e) {
 		if (creatingPlanet) { // finish creating planet
 			sf::Vector2f vel = PLANET_CREATE_VEL_SCALE * (pos - planetCreatePos) * zoom;
 			sf::Vector2f createPos = to_pos(planetCreatePos);
-			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, random_color()));
+			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, random_colour()));
 			creatingPlanet = false;
 		} else { // begin creating planet
 			if (!mouseMoved) {
