@@ -31,6 +31,7 @@ bool creatingPlanet = false;
 sf::Vector2f planetCreatePos;
 bool mouseMoved = false;
 sf::Vector2i lastMousePos;
+bool paused = false;
 
 vector<Planet> savedPlanets;
 sf::Vector2f savedCameraPos;
@@ -83,24 +84,26 @@ void add_trail(Planet* p) {
 }
 
 void update() {
-	for (int i = 0; i < planets.size(); i++) {
-		if (!planets[i].fixed) {
-			sf::Vector2f force = sf::Vector2f(0,0);
-			for (int j = 0; j < planets.size(); j++) {
-				if (j != i) {
-					force += planets[j].mass * direction(planets[i].pos, planets[j].pos) / powf(distance(planets[i].pos, planets[j].pos), 2);
+	if (!paused) {
+		for (int i = 0; i < planets.size(); i++) {
+			if (!planets[i].fixed) {
+				sf::Vector2f force = sf::Vector2f(0,0);
+				for (int j = 0; j < planets.size(); j++) {
+					if (j != i) {
+						force += planets[j].mass * direction(planets[i].pos, planets[j].pos) / powf(distance(planets[i].pos, planets[j].pos), 2);
+					}
 				}
+				planets[i].vel += G * force * PHYS_SCALE;
 			}
-			planets[i].vel += G * force * PHYS_SCALE;
 		}
-	}
 
-	for (int i = 0; i < planets.size(); i++) {
-		if (planets[i].createTrail) {
-			add_trail(&planets[i]);
-		}
-		planets[i].pos += planets[i].vel * PHYS_SCALE;
-	} 
+		for (int i = 0; i < planets.size(); i++) {
+			if (planets[i].createTrail) {
+				add_trail(&planets[i]);
+			}
+			planets[i].pos += planets[i].vel * PHYS_SCALE;
+		} 
+	}
 }
 
 void draw_trail(Planet p, sf::RenderWindow* win) {
@@ -111,7 +114,7 @@ void draw_trail(Planet p, sf::RenderWindow* win) {
 			float colourScale = (i/(p.trail.size()-1.f)) * TRAIL_ALPHA;
 			line[i].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a *  colourScale);
 		}
-		float trailSize = (-1/(length(p.vel)/4+1) + 1) * TRAIL_WIDTH; // connect trail to planet with those 2 extra points
+		float trailSize = (-1/(length(p.vel)/4+1) + 1) * p.size; // connect trail to planet with those 2 extra points
 		sf::Vector2f normal = normalize(sf::Vector2f(-p.vel.y, p.vel.x));
 		line[p.trail.size()].position = to_screen(p.pos + normal*trailSize);
 		line[p.trail.size()].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a * TRAIL_ALPHA);
@@ -237,6 +240,7 @@ void handle_key_press(sf::Event e) {
 	switch (e.key.code) {
 		case (sf::Keyboard::S): save_state();
 		case (sf::Keyboard::L): load_state();
+		case (sf::Keyboard::Space): paused = !paused;
 	}
 }
 
