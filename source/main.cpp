@@ -1,8 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <math.h>
-#include "Planet.hpp"
 #include <iostream>
+#include <cstdlib>
+#include "Planet.hpp"
 
 #define PI 3.14159265
 using namespace std;
@@ -55,6 +56,10 @@ sf::Vector2f to_screen(sf::Vector2f p) { // convert position to screen coord
 
 sf::Vector2f to_pos(sf::Vector2f p) { // convert screen coord to position
 	return (p - cameraPos) * zoom;
+}
+
+sf::Color random_color() {
+	return sf::Color(rand() % 255, rand() % 255, rand() % 255);
 }
 
 void add_trail(Planet* p) {
@@ -189,7 +194,7 @@ void handle_mouse_release(sf::Event e) {
 		if (creatingPlanet) { // finish creating planet
 			sf::Vector2f vel = PLANET_CREATE_VEL_SCALE * (pos - planetCreatePos) * zoom;
 			sf::Vector2f createPos = to_pos(planetCreatePos);
-			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, sf::Color(255, 0, 255)));
+			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, random_color()));
 			creatingPlanet = false;
 		} else { // begin creating planet
 			if (!mouseMoved) {
