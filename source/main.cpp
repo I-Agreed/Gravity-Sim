@@ -13,7 +13,7 @@ const int FPS = 60;
 const float PHYS_SCALE = 0.4; // physics time scale
 const int WIDTH = 800; // screen width
 const int HEIGHT = 600; // screen height
-const int TRAIL_LENGTH = 90; // number of points in trail
+const int TRAIL_LENGTH = 120; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
 const float TRAIL_ALPHA = 0.5; // base trail alpha value
 const float PLANET_CREATE_VEL_SCALE = 0.05;
@@ -244,9 +244,10 @@ int main() {
 	sf::RenderWindow window(sf::VideoMode(800, 600), "Gravity Sim");
 	
 	planets.push_back(Planet(0, 0, 0, 0, 10000, true));
-	planets.push_back(Planet(150, 0, 0, -6, 100, false, true, sf::Color(255, 0, 0)));
-	planets.push_back(Planet(-75, 75*sqrt(3), 3*sqrt(3), 3, 100, false, true, sf::Color(0, 255, 0)));
-	planets.push_back(Planet(-75, -75*sqrt(3), -3*sqrt(3), 3, 100, false, true, sf::Color(0, 0, 255)));
+	planets.push_back(Planet(0, 70, 11, 0, 30, false, true, sf::Color(204, 185, 182)));
+	planets.push_back(Planet(150, 0, 0, -8, 100, false, true, sf::Color(0, 170, 255)));
+	planets.push_back(Planet(170, 0, 0, -5.8, 10, false, true, sf::Color(146, 152, 156)));
+	planets.push_back(Planet(-200, 0, 0, 7.4, 60, false, true, sf::Color(250, 96, 0)));
 
 	save_state(); // Save default state
 	while (window.isOpen()) {
