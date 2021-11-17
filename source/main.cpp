@@ -11,8 +11,8 @@ using namespace std;
 const float G = 1; // gravitational constant
 const int FPS = 60;
 const float PHYS_SCALE = 0.4; // physics time scale
-const int WIDTH = 800; // screen width
-const int HEIGHT = 600; // screen height
+const int START_WIDTH = 800; // starting screen width
+const int START_HEIGHT = 600; // starting screen height
 const int TRAIL_LENGTH = 120; // number of points in trail
 const int TRAIL_WIDTH = 5; // maximum trail width
 const float TRAIL_ALPHA = 0.5; // base trail alpha value
@@ -20,7 +20,7 @@ const float PLANET_CREATE_VEL_SCALE = 0.05;
 const float ARROW_HEAD_SIZE = 20;
 const int ARROW_LINE_WIDTH = 4;
 
-sf::Vector2f cameraPos(WIDTH/2, HEIGHT/2);
+sf::Vector2f cameraPos(START_WIDTH/2, START_HEIGHT/2);
 float zoom = 1;
 float zoomSensitivity = 0.3; // amount zoomed per scroll, 1 = 2x zoom
 sf::Color arrowColor = sf::Color::White;
@@ -36,6 +36,8 @@ bool paused = false;
 vector<Planet> savedPlanets;
 sf::Vector2f savedCameraPos;
 float savedZoom;
+int width = START_WIDTH;
+int height = START_HEIGHT;
 
 float length(sf::Vector2f p) {
 	return sqrtf(pow(p.x, 2) + pow(p.y, 2));
@@ -244,8 +246,18 @@ void handle_key_press(sf::Event e) {
 	}
 }
 
+void handle_resize(sf::Event e, sf::RenderWindow* win) {
+	sf::Vector2u prevSize = win->getSize();
+	sf::FloatRect area(0, 0, e.size.width, e.size.height);
+    win->setView(sf::View(area));
+	cout << e.size.width - area.width << "\n";
+	cameraPos -= sf::Vector2f(width - area.width, height - area.height) / 2.f; // keep camera centred
+	width = area.width;
+	height = area.height;
+}
+
 int main() {
-	sf::RenderWindow window(sf::VideoMode(800, 600), "Gravity Sim");
+	sf::RenderWindow window(sf::VideoMode(START_WIDTH, START_HEIGHT), "Gravity Sim");
 	
 	planets.push_back(Planet(0, 0, 0, 0, 10000, true));
 	planets.push_back(Planet(0, 70, 11, 0, 30, false, true, sf::Color(204, 185, 182)));
@@ -265,6 +277,7 @@ int main() {
 			if (event.type == sf::Event::MouseButtonPressed) handle_mouse_press(event);
 			if (event.type == sf::Event::MouseButtonReleased) handle_mouse_release(event);
 			if (event.type == sf::Event::KeyPressed) handle_key_press(event);
+			if (event.type == sf::Event::Resized) handle_resize(event, &window);
 		}
 		window.clear();
 		draw_all(&window);
