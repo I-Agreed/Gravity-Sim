@@ -238,9 +238,9 @@ void handle_mouse_release(sf::Event e) {
 
 void handle_key_press(sf::Event e) {
 	switch (e.key.code) {
-		case (sf::Keyboard::S): save_state();
-		case (sf::Keyboard::L): load_state();
-		case (sf::Keyboard::Space): paused = !paused;
+		case (sf::Keyboard::S): save_state(); break;
+		case (sf::Keyboard::L): load_state(); break;
+		case (sf::Keyboard::Space): paused = !paused; break;
 	}
 }
 
