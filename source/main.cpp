@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "Planet.hpp"
+#include "Vector2.hpp"
 
 #define PI 3.14159265
 using namespace std;
@@ -20,7 +21,7 @@ const float PLANET_CREATE_VEL_SCALE = 0.05;
 const float ARROW_HEAD_SIZE = 20;
 const int ARROW_LINE_WIDTH = 4;
 
-sf::Vector2f cameraPos(START_WIDTH/2, START_HEIGHT/2);
+IA::Vector2f cameraPos(START_WIDTH/2, START_HEIGHT/2);
 float zoom = 1;
 float zoomSensitivity = 0.3; // amount zoomed per scroll, 1 = 2x zoom
 sf::Color arrowColor = sf::Color::White;
@@ -28,40 +29,27 @@ sf::Color arrowColor = sf::Color::White;
 vector<Planet> planets;
 sf::Clock frameClock;
 bool creatingPlanet = false;
-sf::Vector2f planetCreatePos;
+IA::Vector2f planetCreatePos;
 bool mouseMoved = false;
-sf::Vector2i lastMousePos;
+IA::Vector2i lastMousePos;
 bool paused = false;
 
 vector<Planet> savedPlanets;
-sf::Vector2f savedCameraPos;
+IA::Vector2f savedCameraPos;
 float savedZoom;
 int width = START_WIDTH;
 int height = START_HEIGHT;
 
-float length(sf::Vector2f p) {
-	return sqrtf(pow(p.x, 2) + pow(p.y, 2));
+IA::Vector2f direction(IA::Vector2f p1, IA::Vector2f p2) { // returns direction vector from p1 to p2
+	IA::Vector2f p3 = p2 - p1;
+	return p3 / p3.magnitude();
 }
 
-float distance(sf::Vector2f p1, sf::Vector2f p2) {
-	sf::Vector2f p3 = p2 - p1;
-	return sqrtf(pow(p3.x, 2) + pow(p3.y, 2));
-}
-
-sf::Vector2f normalize(sf::Vector2f p) { // returns direction vector from p1 to p2
-	return p / length(p);
-}
-
-sf::Vector2f direction(sf::Vector2f p1, sf::Vector2f p2) { // returns direction vector from p1 to p2
-	sf::Vector2f p3 = p2 - p1;
-	return p3 / length(p3);
-}
-
-sf::Vector2f to_screen(sf::Vector2f p) { // convert position to screen coord
+IA::Vector2f to_screen(IA::Vector2f p) { // convert position to screen coord
 	return p/zoom + cameraPos;
 }
 
-sf::Vector2f to_pos(sf::Vector2f p) { // convert screen coord to position
+IA::Vector2f to_pos(IA::Vector2f p) { // convert screen coord to position
 	return (p - cameraPos) * zoom;
 }
 
@@ -75,8 +63,8 @@ sf::Color random_colour() {
 }
 
 void add_trail(Planet* p) {
-	float trailSize = (-1/(length(p->vel)/4+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
-	sf::Vector2f normal = normalize(sf::Vector2f(-p->vel.y, p->vel.x));
+	float trailSize = (-1/(p->vel.magnitude()/4+1) + 1) * TRAIL_WIDTH; // when moving faster, the trail is thicker
+	IA::Vector2f normal = IA::Vector2f(-p->vel.y, p->vel.x).norm();
 	p->trail.push_back(p->pos + normal*trailSize);
 	p->trail.push_back(p->pos - normal*trailSize);
 	if (p->trail.size() > TRAIL_LENGTH * 2) {
@@ -89,10 +77,10 @@ void update() {
 	if (!paused) {
 		for (int i = 0; i < planets.size(); i++) {
 			if (!planets[i].fixed) {
-				sf::Vector2f force = sf::Vector2f(0,0);
+				IA::Vector2f force = IA::Vector2f(0,0);
 				for (int j = 0; j < planets.size(); j++) {
 					if (j != i) {
-						force += planets[j].mass * direction(planets[i].pos, planets[j].pos) / powf(distance(planets[i].pos, planets[j].pos), 2);
+						force += planets[j].mass * direction(planets[i].pos, planets[j].pos) / powf(planets[i].pos.distance(planets[j].pos), 2);
 					}
 				}
 				planets[i].vel += G * force * PHYS_SCALE;
@@ -116,8 +104,8 @@ void draw_trail(Planet p, sf::RenderWindow* win) {
 			float colourScale = (i/(p.trail.size()-1.f)) * TRAIL_ALPHA;
 			line[i].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a *  colourScale);
 		}
-		float trailSize = (-1/(length(p.vel)/4+1) + 1) * p.size; // connect trail to planet with those 2 extra points
-		sf::Vector2f normal = normalize(sf::Vector2f(-p.vel.y, p.vel.x));
+		float trailSize = (-1/(p.vel.magnitude()/4+1) + 1) * p.size; // connect trail to planet with those 2 extra points
+		IA::Vector2f normal = IA::Vector2f(-p.vel.y, p.vel.x).norm();
 		line[p.trail.size()].position = to_screen(p.pos + normal*trailSize);
 		line[p.trail.size()].color = sf::Color(p.colour.r, p.colour.g, p.colour.b, p.colour.a * TRAIL_ALPHA);
 		line[p.trail.size() + 1].position = to_screen(p.pos - normal*trailSize);
@@ -130,26 +118,26 @@ void draw_planet(Planet p, sf::RenderWindow* win) {
 	sf::CircleShape circle;
 	circle.setRadius(p.size/zoom);
 	circle.setFillColor(p.colour);
-	circle.setPosition(to_screen(p.pos - sf::Vector2f(p.size, p.size)));
+	circle.setPosition(to_screen(p.pos - IA::Vector2f(p.size, p.size)));
 
 	win->draw(circle);
 }
 
-void draw_arrow(sf::Vector2f start, sf::Vector2f end, sf::RenderWindow* win) {
+void draw_arrow(IA::Vector2f start, IA::Vector2f end, sf::RenderWindow* win) {
 	float angle = atan2f(end.y - start.y, end.x - start.x) * 180 / PI;
-	float dist = distance(start, end);
+	float dist = start.distance(end);
 
-	sf::RectangleShape line(sf::Vector2f(dist - ARROW_HEAD_SIZE, ARROW_LINE_WIDTH)); // Arrow Line
-	line.setOrigin(sf::Vector2f(0, ARROW_LINE_WIDTH/2));
+	sf::RectangleShape line(IA::Vector2f(dist - ARROW_HEAD_SIZE, ARROW_LINE_WIDTH)); // Arrow Line
+	line.setOrigin(IA::Vector2f(0, ARROW_LINE_WIDTH/2));
 	line.setPosition(start);
 	line.setRotation(angle);
 	line.setFillColor(arrowColor);
 
 	sf::ConvexShape head(3); // Arrowhead
-	head.setPoint(0, sf::Vector2f(ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
-	head.setPoint(1, sf::Vector2f(0, ARROW_HEAD_SIZE));
-	head.setPoint(2, sf::Vector2f(0, 0));
-	head.setOrigin(sf::Vector2f(-dist + ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
+	head.setPoint(0, IA::Vector2f(ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
+	head.setPoint(1, IA::Vector2f(0, ARROW_HEAD_SIZE));
+	head.setPoint(2, IA::Vector2f(0, 0));
+	head.setOrigin(IA::Vector2f(-dist + ARROW_HEAD_SIZE, ARROW_HEAD_SIZE/2));
 	head.setPosition(start);
 	head.setRotation(angle);
 	head.setFillColor(arrowColor);
@@ -166,8 +154,8 @@ void draw_all(sf::RenderWindow* win) {
 		draw_planet(p, win);
 	}
 	if (creatingPlanet) {
-		sf::Vector2i mousePosi = sf::Mouse::getPosition(*win);
-		sf::Vector2f mousePos(mousePosi.x, mousePosi.y);
+		IA::Vector2i mousePosi = sf::Mouse::getPosition(*win);
+		IA::Vector2f mousePos(mousePosi.x, mousePosi.y);
 		draw_arrow(planetCreatePos, mousePos, win);
 	}
 }
@@ -193,10 +181,10 @@ void load_state() {
 
 void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
 	if (!creatingPlanet) {
-		sf::Vector2i pos = sf::Mouse::getPosition(*win);
+		IA::Vector2i pos = sf::Mouse::getPosition(*win);
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-				sf::Vector2i change = pos - lastMousePos;
-				cameraPos += sf::Vector2f(change.x, change.y);
+				IA::Vector2i change = pos - lastMousePos;
+				cameraPos += IA::Vector2f(change.x, change.y);
 		}
 		lastMousePos = pos;
 		mouseMoved = true;
@@ -206,7 +194,7 @@ void handle_mouse_move(sf::Event e, sf::RenderWindow* win) {
 void handle_mouse_scroll(sf::Event e, sf::RenderWindow* win) {
 	if (!creatingPlanet) {
 		zoom *= pow(2, -e.mouseWheelScroll.delta*zoomSensitivity);
-		sf::Vector2f pos(e.mouseWheelScroll.x, e.mouseWheelScroll.y);
+		IA::Vector2f pos(e.mouseWheelScroll.x, e.mouseWheelScroll.y);
 		cameraPos -= pos;
 		cameraPos *= powf(2, e.mouseWheelScroll.delta*zoomSensitivity);
 		cameraPos += pos;
@@ -223,10 +211,10 @@ void handle_mouse_press(sf::Event e) {
 
 void handle_mouse_release(sf::Event e) {
 	if (e.mouseButton.button == sf::Mouse::Button::Left) {
-		sf::Vector2f pos = sf::Vector2f(e.mouseButton.x, e.mouseButton.y);
+		IA::Vector2f pos = IA::Vector2f(e.mouseButton.x, e.mouseButton.y);
 		if (creatingPlanet) { // finish creating planet
-			sf::Vector2f vel = PLANET_CREATE_VEL_SCALE * (pos - planetCreatePos) * zoom;
-			sf::Vector2f createPos = to_pos(planetCreatePos);
+			IA::Vector2f vel = PLANET_CREATE_VEL_SCALE * (pos - planetCreatePos) * zoom;
+			IA::Vector2f createPos = to_pos(planetCreatePos);
 			planets.push_back(Planet(createPos.x, createPos.y, vel.x, vel.y, 100, false, true, random_colour()));
 			creatingPlanet = false;
 		} else { // begin creating planet
@@ -247,11 +235,11 @@ void handle_key_press(sf::Event e) {
 }
 
 void handle_resize(sf::Event e, sf::RenderWindow* win) {
-	sf::Vector2u prevSize = win->getSize();
+	IA::Vector2u prevSize = win->getSize();
 	sf::FloatRect area(0, 0, e.size.width, e.size.height);
     win->setView(sf::View(area));
 	cout << e.size.width - area.width << "\n";
-	cameraPos -= sf::Vector2f(width - area.width, height - area.height) / 2.f; // keep camera centred
+	cameraPos -= IA::Vector2f(width - area.width, height - area.height) / 2.f; // keep camera centred
 	width = area.width;
 	height = area.height;
 }
