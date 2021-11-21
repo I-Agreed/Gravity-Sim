@@ -13,6 +13,7 @@ const float G = 1; // gravitational constant
 const int FPS = 60;
 const float PHYS_SCALE = 0.4; // physics time scale
 const bool COLLISIONS = true; // enable collisions
+const float RESTITUTION_COEFF = 0.4; // Coefficient of restitution, 1 is elastic collision, 0 is perfectly inelastic
 const int START_WIDTH = 800; // starting screen width
 const int START_HEIGHT = 600; // starting screen height
 const int TRAIL_LENGTH = 120; // number of points in trail
@@ -101,38 +102,45 @@ void update() {
 				for (int j = 0; j < planets.size(); j++) {
 					if (i != j) {
 						// Check planets are in contact
-						if (planets[i].pos.distance(planets[j].pos) < planets[i].size + planets[j].size) {
-
+						if (planets[i].pos.distance(planets[j].pos) < (planets[i].size + planets[j].size) * 0.95) { // multiply by 95 to give a small bit of leeway and not collide multiple times
 							// This math here calculates the number of physics steps since the two planets collided based on
 							// their positions and velocities. I dont want to work this out again. This is probably not very efficient btw.
 							// This would probably also get very messy on a three way collision.
 							double px = planets[i].pos.x - planets[j].pos.x;
 							double py = planets[i].pos.y - planets[j].pos.y;
-							double vx = planets[i].vel.x - planets[j].vel.x;
-							double vy = planets[i].vel.y - planets[j].vel.y;
+							double vx = planets[i].vel.x*!planets[i].fixed - planets[j].vel.x*!planets[j].fixed;
+							double vy = planets[i].vel.y*!planets[i].fixed - planets[j].vel.y*!planets[j].fixed;
 							double r = planets[i].size + planets[j].size;
 							double a = pow(vx, 2) + pow(vy, 2);
 							double b = 2 * (px * vx + py * vy);
 							double c = pow(px, 2) + pow(py, 2) - pow(r, 2);
-							// Quadratic formula, gives two solutions but we want the larger one.
-							double t = (-b + sqrt(pow(b, 2) - 4 * a * c)) / (2 * a);
+							// Quadratic formula, gives two solutions but we want the smaller one.
+							double t = (-b - sqrt(pow(b, 2) - 4 * a * c)) / (2 * a);
 							// Subtract velocity * t
-							planets[i].pos -= planets[i].vel * t * PHYS_SCALE;
-							planets[j].pos -= planets[j].vel * t * PHYS_SCALE;
+							planets[i].pos += (planets[i].vel * t * PHYS_SCALE)*!planets[i].fixed;
+							planets[j].pos += (planets[j].vel * t * PHYS_SCALE)*!planets[j].fixed;
 							// Cancel out velocity along normal
 							IA::Vector2f rel = (planets[j].pos - planets[i].pos).norm();
 							IA::Vector2f normal = IA::Vector2f(-rel.y, rel.x);
-							// Solve elastic collision
+							// Solve elastic collision and add back corrected velocities
 							double ui = planets[i].vel.dot(rel);
 							double uj = planets[j].vel.dot(rel);
-							double totalMass = planets[i].mass + planets[j].mass;
-							double vi = (ui * (planets[i].mass - planets[j].mass) + uj * (2 * planets[j].mass)) / totalMass;
-							double vj = (uj * (planets[j].mass - planets[i].mass) + ui * (2 * planets[i].mass)) / totalMass;
-							planets[i].vel = normal * (normal.dot(planets[i].vel)) + rel * vi;
-							planets[j].vel = normal * (normal.dot(planets[j].vel)) + rel * vj;
-							// Add back corrected velocities
-							planets[i].pos += planets[i].vel * t * PHYS_SCALE;
-							planets[j].pos += planets[j].vel * t * PHYS_SCALE;
+							// Check if any planets are fixed (infinite mass)
+							if (planets[i].fixed && !planets[j].fixed) {
+								planets[j].vel = normal * (normal.dot(planets[j].vel)) - rel * rel.dot(planets[j].vel);
+								planets[j].pos -= planets[j].vel * t * PHYS_SCALE;
+							} else if (planets[j].fixed && !planets[i].fixed) {
+								planets[i].vel = normal * (normal.dot(planets[i].vel)) - rel * rel.dot(planets[i].vel);
+								planets[i].pos -= planets[i].vel * t * PHYS_SCALE;
+							} else if (!planets[i].fixed && !planets[j].fixed) {
+								double totalMass = planets[i].mass + planets[j].mass;
+								double vi = (RESTITUTION_COEFF * planets[j].mass * (uj - ui) + planets[i].mass * ui + planets[j].mass * uj) / totalMass;
+								double vj = (RESTITUTION_COEFF * planets[i].mass * (ui - uj) + planets[j].mass * uj + planets[i].mass * ui) / totalMass;
+								planets[i].vel = normal * (normal.dot(planets[i].vel)) + rel * vi;
+								planets[j].vel = normal * (normal.dot(planets[j].vel)) + rel * vj;
+								planets[i].pos -= planets[i].vel * t * PHYS_SCALE;
+								planets[j].pos -= planets[j].vel * t * PHYS_SCALE;
+							}
 						}
 					}
 				}
