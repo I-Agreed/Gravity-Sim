@@ -89,13 +89,17 @@ namespace IA {
 
         // Distance between two points
         double distance(Vector2<T> a) {
-            return (this - a).magnitude();
+            return (*this - a).magnitude();
         }
 
         // Conversions
         template <typename C>
         operator Vector2<C>() {
             return Vector2<C>(x, y);
+        }
+        
+        operator std::string() {
+            return std::string("Vector2(") + std::to_string(x) + std::string(", ") + std::to_string(y) + ")";
         }
 
         // SFML Vector2 conversions (the reason I made this)
@@ -129,6 +133,13 @@ namespace IA {
     Vector2<T> operator/(double a, Vector2<T> b) {
         return b / a;
     }
+
+    // Print with IOstream
+    template <typename T>
+    std::ostream& operator<< (std::ostream &out, Vector2<T> vec) {
+    out << "Vector2(" << vec.x << ", " << vec.y << ")";
+    return out;
+}
 
     typedef Vector2<double> Vector2d;
     typedef Vector2<float> Vector2f;
